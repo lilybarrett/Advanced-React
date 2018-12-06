@@ -62,6 +62,35 @@ const mutations = {
         });
         // Finally we return the user to the browser
         return user;
+    },
+
+    async signin(parent, { email, password }, ctx, info) {
+        // check if user with that email exists
+        const user = await ctx.db.query.user({ where: { email: email }});
+        if (!user) {
+            throw new Error(`No such user found for email ${email}`);
+        }
+        // check if their password is valid/correct
+        const valid = await bcrypt.compare(password, user.password);
+        if (!valid) {
+            throw new Error("Invalid Password!");
+        }
+        // generate the JWT token
+        const token = jwt.sign({ userId: user.id }, process.env.APP_SECRET);
+        // set the cookie with the token so we can pass info about the user around on every request
+        ctx.response.cookie("token", token, {
+            httpOnly: true,
+            // this makes sure we cannot access the token via JavaScript 
+            maxAge: 1000 * 60 * 60 * 24 * 365 // 1 year cookie
+        });
+        // Finally we return the user to the browser
+        return user;
+    },
+
+    signout(parent, args, ctx, info) {
+        ctx.response.clearCookie("token");
+        // we can use the clearCookie method because we used cookieParser in our index.js, which gives us access to all these handy little helper methods
+        return { message: "Goodybye!" };
     }
 };
 
