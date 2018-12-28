@@ -5,17 +5,55 @@ const jwt = require("jsonwebtoken");
 const { randomBytes } = require("crypto");
 const { promisify } = require("util");
 const { transport, makeANiceEmail } = require("../Mail.js");
+const { hasPermission } = require("../utils");
 
 const mutations = {
-    async createItem(parent, args, ctx, info) {
-        // TODO: Check if they are logged in
-        const item = await ctx.db.mutation.createItem({
-            data: {
-                ...args
+    async updatePermissions(parent, args, ctx, info) {
+        // check if user is logged in
+        if (!ctx.request.user.id) {
+            throw new Error("You must be signed in!");
+        }
+        // query the current user
+        const currentUser = await ctx.db.query.user({
+            where: {
+                id: ctx.request.userId,
             }
-        }, info);
-        // info contains the query, making sure the item is actually returned to us as requested ind the response here
+        }, info)
+        // check if they have permission to update permissions (ha)
+        hasPermission(currentUser, ['ADMIN', 'PERMISSIONUPDATE'])
+        // update the permissions
+        return ctx.db.mutation.updateUser({
+            data: {
+                permissions: {
+                    set: args.permissions,
+                }
+            },
+            where: {
+                id: args.userId,
+            }
+        }, info)
+    },
 
+    async createItem(parent, args, ctx, info) {
+        if (!ctx.request.userId) {
+            throw new Error('You must be logged in to do that!');
+        }
+
+        const item = await ctx.db.mutation.createItem(
+            {
+                data: {
+                // This is how to create a relationship between the Item and the User
+                    user: {
+                        connect: {
+                            id: ctx.request.userId,
+                        },
+                    },
+                    ...args,
+                    },
+            },
+            info
+        );
+        // info contains the query, making sure the item is actually returned to us as requested ind the response here
         return item;
     },
 
@@ -36,9 +74,17 @@ const mutations = {
     async deleteItem(parent, args, ctx, info) {
         const where = { id: args.id };
         // find the item
-        const item = await ctx.db.query.item({ where }, `{ id title }`);
+        const item = await ctx.db.query.item({ where }, `{ id title user { id }}`);
         // check if they "own" that item and have permissions to delete it
-        // delete it
+        // we have access to the userId b/c we pass it around on every request
+        // we can't use our hasPermissions utility function b/c here we're checking either/or -- the user has one or the other required permissions.
+        // the hasPermissions util checks that ALL required permissions are met.
+        const ownsItem = item.user.id === ctx.request.userId;
+        const hasPermissions = ctx.request.user.permissions.some((p) => ['ADMIN', 'ITEMDELETE'].includes(p));
+        // // delete it
+        if (!ownsItem && !hasPermissions) {
+            throw new Error("You don't have permission to delete this item");
+        }
         return ctx.db.mutation.deleteItem({ where }, info);
     },
 
@@ -60,7 +106,7 @@ const mutations = {
         // we set the jwt as a cookie on the response
         ctx.response.cookie("token", token, {
             httpOnly: true,
-            // this makes sure we cannot access the token via JavaScript 
+            // this makes sure we cannot access the token via JavaScript
             maxAge: 1000 * 60 * 60 * 24 * 365 // 1 year cookie
         });
         // Finally we return the user to the browser
@@ -83,7 +129,7 @@ const mutations = {
         // set the cookie with the token so we can pass info about the user around on every request
         ctx.response.cookie("token", token, {
             httpOnly: true,
-            // this makes sure we cannot access the token via JavaScript 
+            // this makes sure we cannot access the token via JavaScript
             maxAge: 1000 * 60 * 60 * 24 * 365 // 1 year cookie
         });
         // Finally we return the user to the browser
@@ -123,7 +169,6 @@ const mutations = {
 
     async resetPassword(parent, args, ctx, info) {
         // check if the passwords match
-        console.log(args);
         if (args.password !== args.confirmPassword) {
             throw new Error("Yo passwords don't match");
         }
@@ -151,13 +196,13 @@ const mutations = {
         });
         // generate JWT
         const token = jwt.sign({ userId: updatedUser.id }, process.env.APP_SECRET);
-        // set the JWT cookie 
+        // set the JWT cookie
         ctx.response.cookie("token", token, {
             httpOnly: true,
-            // this makes sure we cannot access the token via JavaScript 
+            // this makes sure we cannot access the token via JavaScript
             maxAge: 1000 * 60 * 60 * 24 * 365 // 1 year cookie
         });
-        // return the new user 
+        // return the new user
         return updatedUser;
     }
 };

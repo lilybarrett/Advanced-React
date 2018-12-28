@@ -13,14 +13,12 @@ server.express.use(cookieParser());
 server.express.use((req, res, next) => {
   // all of this will happen between the request and response thanks to next
   const { token } = req.cookies;
-  console.log(token);
   if (token) {
     const { userId } = jwt.verify(token, process.env.APP_SECRET);
     // put the userid onto the req for future requests to access
     // the verify with the app secret will make sure no one has monkeyed with the token
     req.userId = userId;
   }
-  console.log("Heyyyy I'm a middleware");
   // next is the function that evokes the middleware
   next();
 })
@@ -33,7 +31,6 @@ server.express.use(async ( req, res, next ) => {
     { where: { id: req.userId } },
     '{ id, permissions, email, name }'
   );
-  console.log(user);
   req.user = user;
   next();
 });
