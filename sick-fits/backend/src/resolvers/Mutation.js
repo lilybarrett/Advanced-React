@@ -204,6 +204,58 @@ const mutations = {
         });
         // return the new user
         return updatedUser;
+    },
+
+    async addToCart(parent, args, ctx, info) {
+        // 1. Make sure they are signed in
+        const { userId } = ctx.request;
+        if (!userId) {
+            throw new Error("You must be signed in to add items to your cart");
+        }
+        // 2. Query the user's current cart 
+        const [existingCartItem] = await ctx.db.query.cartItems({
+            where: {
+                user: { id: userId },
+                item: { id: args.id },
+            }
+        })
+        // 3. Check if that item is already in their cart and increment by 1 if it is
+        if (existingCartItem) {
+            return ctx.db.mutation.updateCartItem({
+                where: { id: existingCartItem.id },
+                data: { quantity: existingCartItem.quantity + 1 },
+            }, info)
+        }
+        // 4. If it's not, create a fresh CartItem for that user!
+        return ctx.db.mutation.createCartItem({
+            data: {
+                // we need to use "connect" to create the necessary relationship in prisma
+                user: { connect: { id: userId } },
+                item: { connect: { id: args.id } },
+            }
+        }, info)
+    },
+
+   async removeFromCart(parent, args, ctx, info) {
+        const { userId } = ctx.request;
+        if (!userId) {
+            throw new Error("You must be signed in to remove items from your cart");
+        }
+        console.log(args);
+        // find the cart item
+        const existingCartItem = await ctx.db.query.cartItem({
+            where: {
+                id: args.id,
+            }
+        }, `{ id, user { id }}`)
+        // console.log(existingCartItem);
+        // make sure they own the cart item
+        if (!existingCartItem) throw new Error('No cart item found!');
+        if (existingCartItem.user.id !== userId) throw new Error('You do not have permission to remove this item from the cart.');
+        // remove the cart item
+        return ctx.db.mutation.deleteCartItem({
+            where: { id: args.id }
+        }, info)
     }
 };
 
