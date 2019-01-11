@@ -1,6 +1,7 @@
 import React from 'react';
 import { Query, Mutation } from 'react-apollo';
-import gql from 'graphql-tag'; 
+import gql from 'graphql-tag';
+import { adopt } from 'react-adopt';
 import CartStyles from './styles/CartStyles';
 import Supreme from './styles/Supreme';
 import CloseButton from './styles/CloseButton';
@@ -12,7 +13,7 @@ import formatMoney from '../lib/formatMoney';
 
 export const LOCAL_STATE_QUERY = gql`
     query {
-        cartOpen @client 
+        cartOpen @client
         # the @client directive tells Apollo not to grab this from the API, but from our local data store in Apollo Client
 
     }
@@ -24,44 +25,42 @@ export const TOGGLE_CART_MUTATION = gql`
     }
 `;
 
+const Composed = adopt({
+    user: ({ render }) => <User>{render}</User>,
+    toggleCart: ({ render }) => <Mutation mutation={TOGGLE_CART_MUTATION}>{render}</Mutation>,
+    localState: ({ render }) => <Query query={LOCAL_STATE_QUERY}>{render}</Query>,
+});
+
 const Cart = () => {
     return (
-        <User>
-            {({ data: { me }}) => {
+        <Composed>
+            {({ user: { data: { me }}, toggleCart, localState }) => {
                 console.log(me);
                 if (!me) return null;
                 return (
-                    <Mutation mutation={TOGGLE_CART_MUTATION}>
-                        {( toggleCart ) => (
-                            <Query query={LOCAL_STATE_QUERY}>
-                                {({ data }) => (
-                                    <CartStyles open={data.cartOpen}>
-                                        <header>
-                                            <CloseButton onClick={toggleCart} title="close">
-                                                &times;
-                                            </CloseButton>
-                                            <Supreme>
-                                                {me.name}'s Cart
-                                            </Supreme>
-                                            <p>
-                                                You have {me.cart.length} item{me.cart.length > 1 && `s`} in your cart
-                                            </p>
-                                        </header>
-                                        <ul>
-                                           {me.cart.map((cartItem) => <CartItem key={cartItem.id} cartItem={cartItem} />)} 
-                                        </ul>
-                                        <footer>
-                                            <p>{formatMoney(calcTotalPrice(me.cart))}</p>
-                                            <SickButton>Checkout</SickButton>
-                                        </footer>
-                                    </CartStyles>
-                                )}
-                            </Query>
-                        )}
-                    </Mutation>
+                    <CartStyles open={localState.data.cartOpen}>
+                        <header>
+                            <CloseButton onClick={toggleCart} title="close">
+                                &times;
+                            </CloseButton>
+                            <Supreme>
+                                {me.name}'s Cart
+                            </Supreme>
+                            <p>
+                                You have {me.cart.length} item{me.cart.length > 1 && `s`} in your cart
+                            </p>
+                        </header>
+                        <ul>
+                            {me.cart.map((cartItem) => <CartItem key={cartItem.id} cartItem={cartItem} />)}
+                        </ul>
+                        <footer>
+                            <p>{formatMoney(calcTotalPrice(me.cart))}</p>
+                            <SickButton>Checkout</SickButton>
+                        </footer>
+                    </CartStyles>
                 )
             }}
-        </User>
+        </Composed>
     )
 }
 
