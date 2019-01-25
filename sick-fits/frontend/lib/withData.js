@@ -31,7 +31,6 @@ function createClient({ headers }) {
               data: { cartOpen: !cartOpen }
             }
             cache.writeData(data);
-            console.log(cartOpen);
             return data;
           }
         }

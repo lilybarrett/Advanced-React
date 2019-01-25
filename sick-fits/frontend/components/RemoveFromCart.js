@@ -31,13 +31,11 @@ class RemoveFromCart extends React.Component {
     update = (cache, payload) => {
         // cache is our Apollo cache 
         // payload is actual dump of information that's returned from the server
-        console.log('Running remove from cart update fn');
         // first, read the cache
         const data = cache.readQuery({
             query: CURRENT_USER_QUERY
             // this allows us to get the current user's cart
         });
-        console.log(payload);
         // remove the item from the cart
         const cartItemId = payload.data.removeFromCart.id;
         // for this reason, we purposefully made sure our removeFromCart mutation would return the ID for an item

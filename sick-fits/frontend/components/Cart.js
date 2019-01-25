@@ -35,7 +35,6 @@ const Cart = () => {
     return (
         <Composed>
             {({ user: { data: { me }}, toggleCart, localState }) => {
-                console.log(me);
                 if (!me) return null;
                 return (
                     <CartStyles open={localState.data.cartOpen}>
