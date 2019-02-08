@@ -6,6 +6,7 @@ const { randomBytes } = require("crypto");
 const { promisify } = require("util");
 const { transport, makeANiceEmail } = require("../Mail.js");
 const { hasPermission } = require("../utils");
+const stripe = require("../stripe");
 
 const mutations = {
     async updatePermissions(parent, args, ctx, info) {
@@ -212,7 +213,7 @@ const mutations = {
         if (!userId) {
             throw new Error("You must be signed in to add items to your cart");
         }
-        // 2. Query the user's current cart 
+        // 2. Query the user's current cart
         const [existingCartItem] = await ctx.db.query.cartItems({
             where: {
                 user: { id: userId },
@@ -256,6 +257,30 @@ const mutations = {
         return ctx.db.mutation.deleteCartItem({
             where: { id: args.id }
         }, info)
+    },
+
+    async createOrder(parent, args, ctx, info) {
+        // 1. Query the current user and make sure they're signed in
+        const { userId } = ctx.request;
+        if (!userId) {
+            throw new Error("You must be signed in to go through checkout!")
+        }
+        const user = await ctx.db.query.user({ where: { id: userId }},
+            `{ id name email cart { id quantity item { title price id description image } } }`);
+        // 2. Recalculate the total for the price here -- Guards against people trying to change the price to 1 cent client-side!
+        const amount = user.cart.reduce((tally, cartItem) => tally + cartItem.item.price * cartItem.quantity, 0);
+        console.log(`Going to charge for a total of ${amount}`);
+        // 3. Create the Stripe charge (turn token into $$$)
+        const charge = stripe.charges.create({
+            amount,
+            currency: 'USD',
+            source: args.token,
+        });
+        // 4. Convert the CartItems to OrderItems
+        // 5. Create the order
+        // 6. Clean up -- clear the user's cart and delete cart items in our database if they're not necessary
+        // 7. return the order to the client
+
     }
 };
 
