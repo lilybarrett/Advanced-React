@@ -43,6 +43,7 @@ type OrderItem {
   image: String
   largeImage: String
   price: Int!
+  description: String
   quantity: Int! @default(value: 1)
   user: User!
 }
@@ -53,4 +54,6 @@ type Order {
   total: Int!
   user: User!
   charge: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }

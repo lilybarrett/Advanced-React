@@ -266,21 +266,46 @@ const mutations = {
             throw new Error("You must be signed in to go through checkout!")
         }
         const user = await ctx.db.query.user({ where: { id: userId }},
-            `{ id name email cart { id quantity item { title price id description image } } }`);
+            `{ id name email cart { id quantity item { title price id description image largeImage } } }`);
         // 2. Recalculate the total for the price here -- Guards against people trying to change the price to 1 cent client-side!
         const amount = user.cart.reduce((tally, cartItem) => tally + cartItem.item.price * cartItem.quantity, 0);
         console.log(`Going to charge for a total of ${amount}`);
         // 3. Create the Stripe charge (turn token into $$$)
-        const charge = stripe.charges.create({
+        const charge = await stripe.charges.create({
             amount,
             currency: 'USD',
             source: args.token,
         });
         // 4. Convert the CartItems to OrderItems
+        const orderItems = user.cart.map(cartItem => {
+            const orderItem = {
+                ...cartItem.item,
+                quantity: cartItem.quantity,
+                user: { connect: { id: userId }},
+            };
+            delete orderItem.id;
+            return orderItem;
+        });
+        console.log("i am the charge");
+        console.log(charge);
         // 5. Create the order
+        const order = await ctx.db.mutation.createOrder({
+            data: {
+                total: charge.amount,
+                charge: charge.id,
+                items: { create: orderItems },
+                user: { connect: { id: userId }}
+            }
+        })
         // 6. Clean up -- clear the user's cart and delete cart items in our database if they're not necessary
+        const cartItemIds = user.cart.map(cartItem => cartItem.id);
+        await ctx.db.mutation.deleteManyCartItems({
+            where: {
+                id_in: cartItemIds,
+            },
+        });
         // 7. return the order to the client
-
+        return order;
     }
 };
 
