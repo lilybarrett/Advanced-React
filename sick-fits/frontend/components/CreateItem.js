@@ -11,11 +11,11 @@ export const CREATE_ITEM_MUTATION = gql`
         $title: String!
         $description: String!
         $price: Int!
-        $image: String 
-        $largeImage: String 
+        $image: String
+        $largeImage: String
     ) {
         createItem(
-            title: $title 
+            title: $title
             description: $description
             price: $price
             image: $image
@@ -45,7 +45,7 @@ class CreateItem extends Component {
         const data = new FormData();
         data.append('file', files[0]);
         data.append('upload_preset', 'sickfits');
-    
+
         const res = await fetch('https://api.cloudinary.com/v1_1/dqugbwnwn/image/upload/', {
           method: 'POST',
           body: data,
@@ -64,7 +64,7 @@ class CreateItem extends Component {
                 {
                     (createItem, { loading, error }) => (
                         // loading, error, etc. are destructured out of payload
-                        <Form onSubmit={async (e) => {
+                        <Form data-test="form" onSubmit={async (e) => {
                             // stop the form from submitting
                             e.preventDefault();
                             // call the mutation
@@ -79,49 +79,49 @@ class CreateItem extends Component {
                         <Error error={error} />
                         <fieldset disabled={loading} aria-busy={loading}>
                             <label htmlFor="file">
-                                Image 
+                                Image
                                 <input
                                     type="file"
                                     id="file"
                                     name="file"
                                     placeholder="Upload an image"
-                                    required 
+                                    required
                                     onChange={this.uploadFile}
                                 />
                             </label>
                             {this.state.image && <img width="200" src={this.state.image} alt="Upload Preview" />}
                             <label htmlFor="title">
-                                Title 
+                                Title
                                 <input
                                     type="text"
                                     id="title"
                                     name="title"
                                     placeholder="Title"
-                                    required 
+                                    required
                                     value={this.state.title}
                                     onChange={this.handleChange}
                                 />
                             </label>
                             <label htmlFor="price">
-                                Price 
+                                Price
                                 <input
                                     type="text"
                                     id="price"
                                     name="price"
                                     placeholder="Price"
-                                    required 
+                                    required
                                     value={this.state.price}
                                     onChange={this.handleChange}
                                 />
                             </label>
                             <label htmlFor="description">
-                                Description 
+                                Description
                                 <textarea
                                     type="text"
                                     id="description"
                                     name="description"
                                     placeholder="Description"
-                                    required 
+                                    required
                                     value={this.state.description}
                                     onChange={this.handleChange}
                                 />
