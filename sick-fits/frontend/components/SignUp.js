@@ -5,12 +5,12 @@ import Form from "./styles/Form";
 import Error from "./ErrorMessage";
 import { CURRENT_USER_QUERY } from "./User";
 
-const SIGNUP_MUTATION = gql`
+export const SIGNUP_MUTATION = gql`
     mutation SIGNUP_MUTATION($email: String!, $name: String!, $password: String!) {
         signup(email: $email, name: $name, password: $password) {
-            id 
-            email 
-            name 
+            id
+            email
+            name
         }
     }
 `;
@@ -43,7 +43,7 @@ class SignUp extends Component {
                                 <h2>Sign up for an account</h2>
                                 <Error error={error} />
                                 <label htmlFor="email">
-                                    Email 
+                                    Email
                                     <input
                                         type="text"
                                         name="email"

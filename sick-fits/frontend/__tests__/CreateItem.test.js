@@ -5,7 +5,6 @@ import Router from 'next/router';
 import { MockedProvider } from 'react-apollo/test-utils';
 import CreateItem, { CREATE_ITEM_MUTATION } from '../components/CreateItem';
 import { fakeItem } from '../lib/testUtils';
-// import fetch from 'fetch';
 
 // mock the global fetch API
 const dogImage = 'https://dog.com/dog.jpg';
@@ -17,20 +16,6 @@ global.fetch = jest.fn().mockResolvedValue({
         eager: [{ secure_url: dogImage }]
     })
 })
-
-// const mocks = [
-//     {
-//         request: {
-//             query: CREATE_ITEM_MUTATION,
-//             variables: { title: 'test', description: 'test', image: 'test.jpg', price: 10 },
-//         },
-//         result: {
-//             data: {
-//                 createItem: { message: 'Success', __typename: 'Message' }
-//             }
-//         }
-//     },
-// ];
 
 describe('<CreateItem />', () => {
     it('renders and matches the snapshot', async () => {
