@@ -1,30 +1,30 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types';
 import { Query } from 'react-apollo';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import Head from 'next/head';
 import gql from 'graphql-tag';
 import formatMoney from '../lib/formatMoney';
 import Error from './ErrorMessage';
 import OrderStyles from './styles/OrderStyles';
 
-const SINGLE_ORDER_QUERY = gql`
+export const SINGLE_ORDER_QUERY = gql`
     query SINGLE_ORDER_QUERY($id: ID!) {
         order(id: $id) {
-            id 
-            charge 
-            total 
-            createdAt 
+            id
+            charge
+            total
+            createdAt
             user {
-                id 
+                id
             }
             items {
-                id 
-                title 
-                description 
-                price 
+                id
+                title
+                description
+                price
                 image
-                quantity  
+                quantity
             }
         }
     }
@@ -43,7 +43,7 @@ class Order extends Component {
                     if (loading) return <p>Loading...</p>
                     const { order } = data;
                     return (
-                        <OrderStyles>
+                        <OrderStyles data-test="order">
                             <Head>
                                 <title>Sick Fits - Order #{order.id} </title>
                             </Head>
@@ -57,7 +57,7 @@ class Order extends Component {
                             </p>
                             <p>
                                 <span>Date</span>
-                                <span>{format(order.createdAt, 'MMMM d, YYYY h:mm a')}</span>
+                                <span>{format(parseISO(order.createdAt), 'MMMM d, YYYY h:mm a', { awareOfUnicodeTokens: true })}</span>
                             </p>
                             <p>
                                 <span>Order Total</span>
